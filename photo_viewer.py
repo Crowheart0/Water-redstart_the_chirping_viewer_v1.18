@@ -16,7 +16,7 @@ import rawpy
 class ImageViewer:
     def __init__(self, root):
         self.root = root
-        self.root.title("🐦 Water-redstart: the chirping viewer v2.0 (双平台)")
+        self.root.title("🐦 Water-redstart: the chirping viewer v2.1 (双平台)")
         # 初始窗口大小
         self.root.geometry("900x700")
 
@@ -31,7 +31,7 @@ class ImageViewer:
         self.is_fullscreen = False
 
         # 获取当前文件夹下所有图片（屏蔽子目录）
-        self.supported_formats = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.arw', '.cr2', '.cr3', '.nef', '.dng', '.orf')
+        self.supported_formats = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.arw', '.cr2', '.cr3', '.nef', '.dng', '.orf', '.naw', '.nrw')
         self.current_dir = os.getcwd()
         self.images = [
             f for f in os.listdir(self.current_dir)
@@ -135,7 +135,7 @@ class ImageViewer:
         ))
         help_menu.add_separator()
         help_menu.add_command(label="关于", command=lambda: messagebox.showinfo(
-            "关于", "🐦 Water-redstart: the chirping viewer\n\n版本：2.0 (双平台)\n作者：Crowpaw@2026\n鸣谢：ARC, Untribiium, ~ris, 蓝嘴红鹊, Gemini 3.1 Pro\n于一"
+            "关于", "🐦 Water-redstart: the chirping viewer\n\n版本：2.1 (双平台)\n作者：Crowpaw@2026\n鸣谢：ARC, Untribiium, ~ris, 蓝嘴红鹊, 欧鹭风云, Gemini 3.1 Pro\n于一"
         ))
         menubar.add_cascade(label="帮助", menu=help_menu)
         
@@ -187,12 +187,12 @@ class ImageViewer:
         select_count = self.get_select_count()
         if self.images and self.index < len(self.images):
             img_name = self.images[self.index]
-            self.root.title(f"🐦 Water-redstart: the chirping viewer v1.8 | 进度: {self.index + 1}/{len(self.images)} | 📁已选: {select_count} | 当前: {img_name}")
+            self.root.title(f"🐦 Water-redstart: the chirping viewer v2.1 | 进度: {self.index + 1}/{len(self.images)} | 📁已选: {select_count} | 当前: {img_name}")
             self.top_info_label.config(
                 text=f"🐾 进度：{self.index + 1} / {len(self.images)} 📷 【{img_name}】 | 🌲 已挑出: {select_count}只 | 🕊️ 跳过: '{self.hotkey_next.upper()}'  💖 挑出: '{self.hotkey_copy.upper()}'  ⏪ 撤销: '{self.hotkey_undo.upper()}'  📋 剪贴: '{self.hotkey_clip.upper()}'"
             )
         else:
-            self.root.title(f"🐦 Water-redstart: the chirping viewer v1.8")
+            self.root.title(f"🐦 Water-redstart: the chirping viewer v2.1")
             self.top_info_label.config(text=f"🌲 已挑出: {select_count}只 | 🕊️ 跳过: '{self.hotkey_next.upper()}' | 💖 挑出: '{self.hotkey_copy.upper()}' | ⏪ 撤销: '{self.hotkey_undo.upper()}' | 📋 剪贴: '{self.hotkey_clip.upper()}'")
 
     def show_hotkey_dialog(self):
@@ -319,7 +319,7 @@ class ImageViewer:
         ext = os.path.splitext(img_path)[1].lower()
         target_size = (3000, 3000)
         try:
-            if ext in ('.arw', '.cr2', '.cr3', '.nef', '.dng', '.orf'):
+            if ext in ('.arw', '.cr2', '.cr3', '.nef', '.dng', '.orf', '.naw', '.nrw'):
                 # 对于RAW照片，使用rawpy提取内嵌的预览图（通常是jpeg格式），速度极快数百倍
                 with rawpy.imread(img_path) as raw:
                     try:
@@ -496,7 +496,10 @@ class ImageViewer:
             print(f"无法打开图片 {img_path}: {e}")
             self.index += 1
             if self.index < len(self.images):
-                self.load_image()
+                self.root.after(1, self.load_image)
+            else:
+                self.index = len(self.images) - 1
+                self.show_end_dialog()
 
     def on_mouse_wheel(self, event):
         if not getattr(self, 'current_img_obj', None): return
