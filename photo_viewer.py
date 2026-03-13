@@ -16,7 +16,7 @@ import rawpy
 class ImageViewer:
     def __init__(self, root):
         self.root = root
-        self.root.title("🐦 Water-redstart: the chirping viewer v2.1 (双平台)")
+        self.root.title("🐦 Water-redstart: the chirping viewer v2.2 (双平台)")
         # 初始窗口大小
         self.root.geometry("900x700")
 
@@ -117,6 +117,10 @@ class ImageViewer:
         
         self.reverse_var = tk.BooleanVar(value=False)
         settings_menu.add_checkbutton(label="倒序选片 (从后往前)", variable=self.reverse_var, command=self.toggle_reverse)
+        
+        self.low_memory_mode = tk.BooleanVar(value=False)
+        settings_menu.add_checkbutton(label="省内存模式 (预加载20张)", variable=self.low_memory_mode)
+        
         settings_menu.add_separator()
         
         settings_menu.add_command(label="修改操作热键与文件夹...", command=self.show_hotkey_dialog)
@@ -135,7 +139,7 @@ class ImageViewer:
         ))
         help_menu.add_separator()
         help_menu.add_command(label="关于", command=lambda: messagebox.showinfo(
-            "关于", "🐦 Water-redstart: the chirping viewer\n\n版本：2.1 (双平台)\n作者：Crowpaw@2026\n鸣谢：ARC, Untribiium, ~ris, 蓝嘴红鹊, 欧鹭风云, Gemini 3.1 Pro\n于一"
+            "关于", "🐦 Water-redstart: the chirping viewer\n\n版本：2.2 (双平台)\n作者：Crowpaw@2026\n鸣谢：ARC, Untribiium, ~ris, 蓝嘴红鹊, 欧鹭风云, 瑞瑞, Gemini 3.1 Pro\n于一"
         ))
         menubar.add_cascade(label="帮助", menu=help_menu)
         
@@ -187,12 +191,12 @@ class ImageViewer:
         select_count = self.get_select_count()
         if self.images and self.index < len(self.images):
             img_name = self.images[self.index]
-            self.root.title(f"🐦 Water-redstart: the chirping viewer v2.1 | 进度: {self.index + 1}/{len(self.images)} | 📁已选: {select_count} | 当前: {img_name}")
+            self.root.title(f"🐦 Water-redstart: the chirping viewer v2.2 | 进度: {self.index + 1}/{len(self.images)} | 📁已选: {select_count} | 当前: {img_name}")
             self.top_info_label.config(
                 text=f"🐾 进度：{self.index + 1} / {len(self.images)} 📷 【{img_name}】 | 🌲 已挑出: {select_count}只 | 🕊️ 跳过: '{self.hotkey_next.upper()}'  💖 挑出: '{self.hotkey_copy.upper()}'  ⏪ 撤销: '{self.hotkey_undo.upper()}'  📋 剪贴: '{self.hotkey_clip.upper()}'"
             )
         else:
-            self.root.title(f"🐦 Water-redstart: the chirping viewer v2.1")
+            self.root.title(f"🐦 Water-redstart: the chirping viewer v2.2")
             self.top_info_label.config(text=f"🌲 已挑出: {select_count}只 | 🕊️ 跳过: '{self.hotkey_next.upper()}' | 💖 挑出: '{self.hotkey_copy.upper()}' | ⏪ 撤销: '{self.hotkey_undo.upper()}' | 📋 剪贴: '{self.hotkey_clip.upper()}'")
 
     def show_hotkey_dialog(self):
@@ -349,12 +353,14 @@ class ImageViewer:
             return None
 
     def preload_images_worker(self, current_idx):
-        """后台预加载后续50张和前5张图片，保证极端暴力的盲开连翻也毫无卡顿"""
+        """后台预加载后续图片，保证极端暴力的盲开连翻也毫无卡顿"""
         to_cache_indices = []
         for i in range(1, 6):
             if current_idx - i >= 0:
                 to_cache_indices.append(current_idx - i)
-        for i in range(1, 51):
+                
+        preload_count = 20 if getattr(self, 'low_memory_mode', None) and self.low_memory_mode.get() else 50
+        for i in range(1, preload_count + 1):
             if current_idx + i < len(self.images):
                 to_cache_indices.append(current_idx + i)
 
@@ -377,6 +383,10 @@ class ImageViewer:
                     self.image_cache[idx] = img_obj
                         
     def show_end_dialog(self):
+        if getattr(self, 'end_dialog_open', False):
+            return
+        self.end_dialog_open = True
+        
         end_window = tk.Toplevel(self.root)
         end_window.title("🎉 挑图完成！")
         end_window.geometry("400x320")
@@ -420,8 +430,11 @@ class ImageViewer:
             elif choice == 3:
                 do_delete_originals()
                 do_delete_self()
+            self.end_dialog_open = False
             end_window.destroy()
             self.root.destroy()
+
+        end_window.protocol("WM_DELETE_WINDOW", lambda: (setattr(self, 'end_dialog_open', False), end_window.destroy()))
 
         btn_style = {"font": ("Microsoft YaHei", 10), "width": 25, "pady": 5, "fg": "white", "bd": 0, "cursor": "hand2"}
 
